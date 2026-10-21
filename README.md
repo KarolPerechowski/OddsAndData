@@ -23,6 +23,7 @@ scoreboard.startMatch("Mexico", "Canada");          // 0-0
 scoreboard.updateScore("Mexico", "Canada", 0, 5);   // replaces the score
 scoreboard.finishMatch("Mexico", "Canada");
 List<Match> inProgress = scoreboard.getSummary();
+Optional<Match> mexico = scoreboard.findMatchByTeam("Mexico");
 ```
 
 `getSummary()` returns matches ordered by:
@@ -57,6 +58,10 @@ The board is synchronized. The data set is tiny (dozens of matches at most), so 
 - **Unchecked exceptions.** Invalid calls are programmer errors; checked exceptions would add noise without recovery paths.
 - **No dependency besides JUnit.** The domain is small enough that a framework would hide the interesting code.
 
-## Extra feature
+## Extra feature: look up a match by team
 
-_One additional scoreboard operation will be added in its own git commit, with an explanation of what it does and why it was chosen._
+`Optional<Match> findMatchByTeam(String teamName)` returns the in-progress match involving that team, or empty if they are not currently playing.
+
+A ranked summary is the right view for a "live scores" table. A lot of real use (a team page, a commentator asking "what's Mexico on?", a UI that already selected one side) needs a single game by team name. Without this method every caller reimplements a scan of `getSummary()`, and that scan is easy to get wrong if they assume the list is ordered by team.
+
+This is a distinct operation rather than extra validation: it answers a question the required API does not. It stays cheap because a team can only be in one live match.

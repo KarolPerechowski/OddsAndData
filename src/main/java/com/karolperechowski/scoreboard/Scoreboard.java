@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * In-memory live scoreboard for World Cup matches currently in progress.
@@ -63,6 +64,22 @@ public final class Scoreboard {
     public synchronized void finishMatch(String homeTeam, String awayTeam) {
         MatchKey key = requireExistingKey(homeTeam, awayTeam);
         matches.remove(key);
+    }
+
+    /**
+     * Finds the in-progress match that involves the given team, if any.
+     *
+     * <p>Useful when a caller already knows a team name (commentary, a team page) and should not
+     * have to scan {@link #getSummary()} to learn who they are playing and the current score.
+     */
+    public synchronized Optional<Match> findMatchByTeam(String teamName) {
+        String team = requireTeamName(teamName, "teamName");
+        for (InProgressMatch match : matches.values()) {
+            if (match.involves(team)) {
+                return Optional.of(match.toMatch());
+            }
+        }
+        return Optional.empty();
     }
 
     /**
