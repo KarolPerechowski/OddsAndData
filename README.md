@@ -1,6 +1,6 @@
 # Live Football World Cup Scoreboard
 
-A small Java 17 library that tracks in-progress World Cup matches: start a match, update the score, finish a match, and return a ranked summary of games still in progress.
+A small Java 17 library that tracks World Cup matches: start a match, update the score, finish a match, and return a ranked summary of games still in progress. Finished matches stay available as final scores.
 
 This repository is submitted as it would be for an internal code review. How AI tools were used is documented in [AI.md](AI.md).
 
@@ -23,13 +23,19 @@ scoreboard.startMatch("Mexico", "Canada");          // 0-0
 scoreboard.updateScore("Mexico", "Canada", 0, 5);   // replaces the score
 scoreboard.finishMatch("Mexico", "Canada");
 List<Match> inProgress = scoreboard.getSummary();
-Optional<Match> mexico = scoreboard.findMatchByTeam("Mexico");
+List<Match> finals = scoreboard.getFinalScore();
 ```
 
 `getSummary()` returns matches ordered by:
 
 1. Total score (home + away), descending
 2. If totals are tied, the match that started most recently first
+
+`getFinalScore()` returns finished matches ordered by:
+
+1. Total score, descending
+2. If totals are tied, home team name A–Z (case-sensitive)
+3. If the home team is also the same, away team name A–Z
 
 ## Assumptions
 
@@ -38,7 +44,7 @@ Optional<Match> mexico = scoreboard.findMatchByTeam("Mexico");
 - A new match always starts at 0-0. `updateScore` sets the current totals rather than adding a single goal.
 - Scores are non-negative integers. There is no upper bound (World Cup games can go to extra time).
 - A team may play in at most one in-progress match. Home and away must be different teams.
-- Finishing a match removes it from the board. The library does not keep a history of completed games.
+- Finishing a match removes it from the live board and stores that score for `getFinalScore()`. A team may start another match afterwards. The same pair can finish more than once; each final score is kept.
 - "Most recently started" uses an internal start order, not wall-clock time, so ordering is stable even if two matches start in the same millisecond.
 - Invalid input fails fast with `IllegalArgumentException` (or `NullPointerException` for null team names).
 
@@ -58,10 +64,8 @@ The board is synchronized. The data set is tiny (dozens of matches at most), so 
 - **Unchecked exceptions.** Invalid calls are programmer errors; checked exceptions would add noise without recovery paths.
 - **No dependency besides JUnit.** The domain is small enough that a framework would hide the interesting code.
 
-## Extra feature: look up a match by team
+## Extra feature: final scores
 
-`Optional<Match> findMatchByTeam(String teamName)` returns the in-progress match involving that team, or empty if they are not currently playing.
+`List<Match> getFinalScore()` returns every match that has finished, with the score it had at the moment it finished.
 
-A ranked summary is the right view for a "live scores" table. A lot of real use (a team page, a commentator asking "what's Mexico on?", a UI that already selected one side) needs a single game by team name. Without this method every caller reimplements a scan of `getSummary()`, and that scan is easy to get wrong if they assume the list is ordered by team.
-
-This is a distinct operation rather than extra validation: it answers a question the required API does not. It stays cheap because a team can only be in one live match.
+The required summary only answers "what is live right now?". Once a game ends it disappears from that list, and a results page or a recap still needs those scores. Ordering by total goals keeps the biggest games at the top, the same idea as the live summary. The tie-break is alphabetical by home team (then away team) because finish time is not part of the question being asked: two 2–2 games should line up by name, not by which one happened to be closed first.

@@ -15,7 +15,7 @@ A project Cursor hook (`.cursor/hooks.json` + `.cursor/hooks/log_prompt.ps1`) ap
 - Cursor Hooks documentation (`beforeSubmitPrompt` stdin JSON: `prompt`, optional `conversation_id`)
 - Cursor `create-hook` skill (project hooks under `.cursor/hooks.json`)
 - Classic live-scoreboard ranking example (Mexico/Canada, Spain/Brazil, Germany/France, Uruguay/Italy, Argentina/Australia) used as an acceptance test for summary ordering
-- Extra operation chosen: `findMatchByTeam` (lookup one live match without scanning the ranked summary)
+- Extra operation chosen: `getFinalScore` (finished matches by total score, then home team name, then away team name). Replaces the earlier `findMatchByTeam` lookup.
 
 ## Prompt history
 

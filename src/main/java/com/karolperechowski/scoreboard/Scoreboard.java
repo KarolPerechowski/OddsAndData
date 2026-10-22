@@ -6,17 +6,18 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
- * In-memory live scoreboard for World Cup matches currently in progress.
+ * In-memory live scoreboard for World Cup matches.
  *
  * <p>Team names identify a match. A team may appear in at most one in-progress match.
+ * Finished matches are kept so {@link #getFinalScore()} can return their results.
  * All mutating operations are synchronized so a single instance is safe to share.
  */
 public final class Scoreboard {
 
     private final Map<MatchKey, InProgressMatch> matches = new LinkedHashMap<>();
+    private final List<Match> finishedMatches = new ArrayList<>();
     private long nextStartOrder;
 
     /**
@@ -57,29 +58,13 @@ public final class Scoreboard {
     }
 
     /**
-     * Removes a match from the scoreboard.
+     * Removes a match from the live board and records its score as a final result.
      *
      * @throws IllegalArgumentException if the match is not in progress
      */
     public synchronized void finishMatch(String homeTeam, String awayTeam) {
         MatchKey key = requireExistingKey(homeTeam, awayTeam);
-        matches.remove(key);
-    }
-
-    /**
-     * Finds the in-progress match that involves the given team, if any.
-     *
-     * <p>Useful when a caller already knows a team name (commentary, a team page) and should not
-     * have to scan {@link #getSummary()} to learn who they are playing and the current score.
-     */
-    public synchronized Optional<Match> findMatchByTeam(String teamName) {
-        String team = requireTeamName(teamName, "teamName");
-        for (InProgressMatch match : matches.values()) {
-            if (match.involves(team)) {
-                return Optional.of(match.toMatch());
-            }
-        }
-        return Optional.empty();
+        finishedMatches.add(matches.remove(key).toMatch());
     }
 
     /**
@@ -96,6 +81,20 @@ public final class Scoreboard {
             summary.add(match.toMatch());
         }
         return List.copyOf(summary);
+    }
+
+    /**
+     * Returns finished matches ordered by total score descending, then home team name A–Z,
+     * then away team name A–Z. Name order is case-sensitive.
+     */
+    public synchronized List<Match> getFinalScore() {
+        List<Match> ordered = new ArrayList<>(finishedMatches);
+        ordered.sort(Comparator
+                .comparingInt(Match::totalScore)
+                .reversed()
+                .thenComparing(Match::homeTeam)
+                .thenComparing(Match::awayTeam));
+        return List.copyOf(ordered);
     }
 
     private MatchKey requireExistingKey(String homeTeam, String awayTeam) {
