@@ -48,6 +48,8 @@ List<Match> finals = scoreboard.getFinalScore();
 - "Most recently started" uses an internal start order, not wall-clock time, so ordering is stable even if two matches start in the same millisecond.
 - Invalid input fails fast with `IllegalArgumentException` (or `NullPointerException` for null team names).
 
+**Added by me:** The library has to stay simple. It still needs a lot of test cases so we can be sure it works correctly. I gave the implementation to the agent.
+
 ## Reasoning
 
 The public surface is a single `Scoreboard` plus an immutable `Match` snapshot. Callers never mutate a `Match`; they ask the scoreboard to change state and then read a new snapshot. That keeps ranking logic in one place and makes tests straightforward.
@@ -56,6 +58,8 @@ Team names are the match key because the brief describes a live football board, 
 
 The board is synchronized. The data set is tiny (dozens of matches at most), so a single lock is simpler and safer than a concurrent collection plus extra invariants around "a team plays once".
 
+**Added by me:** This is a fairly simple task, and an agent can implement it easily. There is no complicated logic, and there is no database or API that has to be tested. The additional feature does not change the core library. It only changes what happens after a match ends, and it keeps a finished-match history because that history is actually useful.
+
 ## Trade-offs
 
 - **In-memory only.** Easy to test and review; not suitable as a production store without a backing service.
@@ -63,6 +67,8 @@ The board is synchronized. The data set is tiny (dozens of matches at most), so 
 - **No match IDs.** Names are readable in tests and at the call site. The cost is that two different games with the same pair of names cannot overlap (already forbidden) and renaming a team is not supported.
 - **Unchecked exceptions.** Invalid calls are programmer errors; checked exceptions would add noise without recovery paths.
 - **No dependency besides JUnit.** The domain is small enough that a framework would hide the interesting code.
+
+**Added by me:** This is an in-memory application. It has no database and no API to call for web use.
 
 ## Extra feature: final scores
 
